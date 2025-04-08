@@ -1,14 +1,14 @@
-import openai
-import openai
+from openai import OpenAI
 import os
 import random
 import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
+import time
 
 # loads environment variables from .env
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client=OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # phishing prompt templates
 phishing_templates = [
@@ -33,7 +33,7 @@ legitimate_templates = [
 def generate_email(prompt, label, max_tokens=200, temperature=0.8):
     """Generates a single email using the OpenAI API."""
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",  
             messages=[
                 {"role": "system", "content": "You are an expert email writer."},
@@ -42,10 +42,11 @@ def generate_email(prompt, label, max_tokens=200, temperature=0.8):
             temperature=temperature,
             max_tokens=max_tokens
         )
-        text = response['choices'][0]['message']['content'].strip()
+        text = response.choices[0].message.content.strip()
         return {"email_text": text, "label": label}
     except Exception as e:
         print(f"Error generating email: {e}")
+        print(f"Error details: {str(e)}")
         return None
 
 def generate_dataset(n_phishing=50, n_legit=50):
@@ -59,16 +60,23 @@ def generate_dataset(n_phishing=50, n_legit=50):
         if sample:
             data.append(sample)
 
+        time.sleep(0.5)
+
     print("[+] Generating legitimate emails...")
     for _ in tqdm(range(n_legit)):
         prompt = random.choice(legitimate_templates)
         sample = generate_email(prompt, label=0)
         if sample:
             data.append(sample)
+            
+        time.sleep(0.5)
 
-    df = pd.DataFrame(data)
-    df.to_csv("generated_phishing_dataset.csv", index=False)
-    print("[✓] Dataset saved as generated_phishing_dataset.csv")
+    if data:
+        df = pd.DataFrame(data)
+        df.to_csv("generated_phishing_dataset.csv", index=False)
+        print("[✓] Dataset saved as generated_phishing_dataset.csv")
+    else:
+       print("[!] No data was generated. Check the error messages above.")
 
 if __name__ == "__main__":
     generate_dataset(n_phishing=100, n_legit=100)  
