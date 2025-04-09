@@ -11,6 +11,7 @@ import time
 load_dotenv()
 client=OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Definition of characteristics based on 2024 egress phishing report
 top_industries = [
     {"name": "Insurance", "weight": 25},
     {"name": "Finance", "weight": 25},
@@ -19,7 +20,6 @@ top_industries = [
     {"name": "Transportation", "weight": 15},
 ]
 
-# Top 5 most impersonated brands (based on Egress report)
 top_brands = [
     {"name": "Microsoft", "domain": "microsoft.com", "weight": 30},
     {"name": "DocuSign", "domain": "docusign.com", "weight": 25},
@@ -28,7 +28,6 @@ top_brands = [
     {"name": "Facebook", "domain": "facebook.com", "weight": 10}
 ]
 
-# Top 5 most targeted job titles (based on Egress report)
 top_job_titles = [
     {"title": "CEO", "weight": 30},
     {"title": "CFO", "weight": 25},
@@ -37,7 +36,7 @@ top_job_titles = [
     {"title": "CRO", "weight": 15}
 ]
 
-# Payload types (link and attachment - removing QR codes)
+# Payload types
 payload_types = [
     {"type": "link", "weight": 70},
     {"type": "attachment", "weight": 30}
@@ -133,7 +132,7 @@ def extract_email_parts(email_text):
             break
     return subject, body
 
-def generate_dataset(n_phishing=100, n_legit=50, output_path="phishing_dataset.csv"):
+def generate_dataset(n_phishing=100, n_legit=50, output_path="ai_phishing_dataset.csv"):
     data = []
     print("[+] Generating phishing emails based on Egress report findings...")
     for _ in tqdm(range(n_phishing)):
@@ -165,7 +164,7 @@ The purpose is to create a sense of urgency and convince a high-level executive 
             if phishing_email:
                 subject, body = extract_email_parts(phishing_email["email_text"])
                 data.append({
-                    "email_type": "phishing",
+                    "label": "1",
                     "subject": subject,
                     "body": body,
                     "phishing_technique": phishing_technique,
@@ -176,7 +175,8 @@ The purpose is to create a sense of urgency and convince a high-level executive 
                     "attachment_name": attachment_name,
                     "industry": industry
                 })
-            time.sleep(2)  # Adding sleep to avoid rate limiting
+            time.sleep(2)  
+
         except Exception as e:
             print(f"Error generating phishing email: {e}")
     
@@ -194,7 +194,7 @@ The purpose is to create a sense of urgency and convince a high-level executive 
             if legit_email:
                 subject, body = extract_email_parts(legit_email)
                 data.append({
-                    "email_type": "legitimate",
+                    "label": "0",
                     "subject": subject,
                     "body": body,
                     "phishing_technique": None,
@@ -205,7 +205,8 @@ The purpose is to create a sense of urgency and convince a high-level executive 
                     "attachment_name": None,
                     "industry": None
                 })
-            time.sleep(2)  # Adding sleep to avoid rate limiting
+            time.sleep(2)  
+
         except Exception as e:
             print(f"Error generating legitimate email: {e}")
     
